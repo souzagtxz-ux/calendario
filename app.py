@@ -1,111 +1,138 @@
 import streamlit as st
 import calendar
-from datetime import datetime, date
+from datetime import datetime
 
-# Configuração para TELA CHEIA
-st.set_page_config(page_title="Luna Care Fullscreen", layout="wide")
+# Configuração da página para ocupar a tela toda
+st.set_page_config(page_title="Luna Beauty Calendar", layout="wide")
 
-# --- ESTILO ROXO E PRETO (TELA CHEIA) ---
+# --- ESTILO CSS PARA O LOOK "CALENDÁRIO DE MESA" ---
 st.markdown("""
     <style>
     .stApp { background-color: #0b0d11; color: white; }
     
-    /* Tira as margens padrão do Streamlit */
-    .block-container { padding-top: 1rem; padding-bottom: 0rem; max-width: 95%; }
-    
-    /* Estilo dos Botões de Data */
-    div.stButton > button {
+    /* Título */
+    .titulo { text-align: center; color: #9d4edd; font-family: 'serif'; font-size: 3rem; margin-bottom: 20px; }
+
+    /* Estilo da Tabela do Calendário */
+    .calendar-table {
         width: 100%;
-        height: 100px;
-        background-color: #161a23;
-        color: #9d4edd;
-        border: 1px solid #3c096c;
-        border-radius: 10px;
-        font-size: 20px;
-        font-weight: bold;
-        transition: 0.3s;
+        border-collapse: separate;
+        border-spacing: 10px;
+        table-layout: fixed;
     }
     
-    div.stButton > button:hover {
-        background-color: #7b2cbf;
-        color: white;
-        border-color: #ff00ff;
+    .calendar-table th {
+        color: #7b2cbf;
+        text-align: center;
+        font-size: 1.2rem;
+        padding-bottom: 10px;
     }
 
-    /* Títulos e Textos */
-    h1 { color: #9d4edd; text-shadow: 2px 2px #000; }
-    .dia-semana { text-align: center; font-weight: bold; color: #7b2cbf; padding: 10px; }
+    .dia-celula {
+        background: #161a23;
+        border: 1px solid #3c096c;
+        border-radius: 15px;
+        height: 120px;
+        padding: 10px;
+        transition: 0.3s;
+        position: relative;
+    }
+
+    .dia-celula:hover {
+        border-color: #ff00ff;
+        background: #1e1e2e;
+        transform: translateY(-5px);
+    }
+
+    .num-dia { font-size: 1.5rem; font-weight: bold; color: #9d4edd; }
+    .hoje { border: 2px solid #ff00ff !important; box-shadow: 0 0 15px #ff00ff; }
+    
+    .event-dot {
+        height: 8px;
+        width: 8px;
+        background-color: #ff00ff;
+        border-radius: 50%;
+        display: inline-block;
+        margin-top: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 # --- LÓGICA DE CONTEÚDO ---
-def obter_detalhes(dia_ciclo):
-    if 1 <= dia_ciclo <= 6:
-        return "🩸 Fase Menstrual", "Hidratação Máxima", ["Beber 3L de água", "Creme de Ceramidas", "Massagem com óleo morno", "Evitar café"]
-    elif 7 <= dia_ciclo <= 13:
-        return "🌱 Fase Folicular", "Renovação e Brilho", ["Sérum Vitamina C", "Esfoliação Química", "Protetor Solar FPS 50", "Suco Verde"]
-    elif 14 <= dia_ciclo <= 18:
-        return "✨ Fase Ovulatória", "Glow e Proteção", ["Niacinamida", "Limpeza com Gel leve", "Caminhada ao ar livre", "Máscara de Argila Rosa"]
-    else:
-        return "🌑 Fase Lútea", "Controle de Oleosidade", ["Ácido Salicílico", "Drenagem Facial", "Chá de Camomila", "Adesivo secativo nas espinhas"]
+def get_skincare(dia):
+    # Exemplo de rotina fixa por dia da semana ou fase
+    rotinas = {
+        0: ("Segunda", "🧘 Detox", ["Limpeza profunda", "Argila Verde"]),
+        1: ("Terça", "✨ Brilho", ["Vitamina C", "Esfoliação"]),
+        2: ("Quarta", "💧 Hidratação", ["Máscara de Tecido", "Ácido Hialurônico"]),
+        3: ("Quinta", "🛡️ Proteção", ["Niacinamida", "Protetor Solar FPS 50"]),
+        4: ("Sexta", "🍷 Reparo", ["Retinol", "Creme de Noite"]),
+        5: ("Sábado", "🛀 Spa Day", ["Banho relaxante", "Óleos corporais"]),
+        6: ("Domingo", "💤 Descanso", ["Bálsamo labial", "Dormir cedo"]),
+    }
+    return rotinas[dia]
 
-# --- SIDEBAR (CONFIGURAÇÃO INVISÍVEL PARA TELA CHEIA) ---
-with st.sidebar:
-    st.header("Configurações")
-    data_inicio = st.date_input("Início da última menstruação", value=date(2026, 1, 20))
-    ciclo = st.number_input("Duração do Ciclo", value=28)
-    st.divider()
-    st.write("O calendário abaixo calcula automaticamente suas fases.")
+# --- INTERFACE ---
+st.markdown("<h1 class='titulo'>🌙 My Beauty Calendar</h1>", unsafe_allow_html=True)
 
-# --- TELA PRINCIPAL ---
-st.title("🌙 Calendário de Autocuidado Luna")
-
-# Navegação de Mês
 hoje = datetime.now()
 ano, mes = hoje.year, hoje.month
-cal = calendar.monthcalendar(ano, mes)
-nomes_meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+nome_mes = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"][mes-1]
 
-st.subheader(f"{nomes_meses[mes-1]} de {ano}")
+# Colunas para organizar o layout
+col_cal, col_info = st.columns([3, 1])
 
-# Header dos Dias da Semana
-dias_semana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"]
-cols_h = st.columns(7)
-for i, d in enumerate(dias_semana):
-    cols_h[i].markdown(f'<div class="dia-semana">{d}</div>', unsafe_allow_html=True)
+with col_cal:
+    st.subheader(f"{nome_mes} {ano}")
+    
+    # Gerar a grade do calendário
+    cal = calendar.monthcalendar(ano, mes)
+    dias_nome = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+    
+    # Criando a tabela em HTML
+    html_cal = "<table class='calendar-table'><thead><tr>"
+    for d in dias_nome:
+        html_cal += f"<th>{d}</th>"
+    html_cal += "</tr></thead><tbody>"
 
-# Grade do Calendário
-for semana in cal:
-    cols = st.columns(7)
-    for i, dia in enumerate(semana):
-        if dia == 0:
-            cols[i].write("") # Espaço vazio
-        else:
-            # Calcular dia do ciclo para esta data
-            data_clicada = date(ano, mes, dia)
-            delta = (data_clicada - data_inicio).days
-            dia_ciclo = (delta % ciclo) + 1
-            
-            # Botão de Data
-            if cols[i].button(f"{dia}", key=f"dia_{dia}"):
-                # O que aparece quando clica
-                fase, foco, lista = obter_detalhes(dia_ciclo)
-                st.markdown(f"""
-                    <div style="background: #1e1e2e; padding: 20px; border-radius: 15px; border-left: 5px solid #ff00ff; margin-top: 10px;">
-                        <h2 style='margin-top:0;'>📅 Dia {dia}: {fase} (Dia {dia_ciclo} do ciclo)</h2>
-                        <h3 style='color: #e0aaff;'>🎯 {foco}</h3>
-                    </div>
-                """, unsafe_allow_html=True)
+    for semana in cal:
+        html_cal += "<tr>"
+        for i, dia in enumerate(semana):
+            if dia == 0:
+                html_cal += "<td></td>"
+            else:
+                classe_hoje = "hoje" if dia == hoje.day else ""
+                # Pegar info da rotina
+                data_obj = datetime(ano, mes, dia)
+                nome_fase, acao, _ = get_skincare(data_obj.weekday())
                 
-                col_res1, col_res2 = st.columns(2)
-                with col_res1:
-                    st.write("### ✅ O que fazer:")
-                    for item in lista:
-                        st.write(f"🔹 {item}")
-                with col_res2:
-                    st.write("### 💊 Suplementação/Chás:")
-                    st.write("- Magnésio (se houver cólica)")
-                    st.write("- Chá específico para a fase")
-                st.divider()
+                html_cal += f"""
+                <td>
+                    <div class="dia-celula {classe_hoje}">
+                        <span class="num-dia">{dia}</span><br>
+                        <span style="font-size:0.7rem; color:#aaa;">{acao}</span><br>
+                        <span class="event-dot"></span>
+                    </div>
+                </td>
+                """
+        html_cal += "</tr>"
+    html_cal += "</tbody></table>"
+    st.markdown(html_cal, unsafe_allow_html=True)
 
-st.info("👆 Clique em qualquer número para ver sua rotina detalhada.")
+with col_info:
+    st.markdown("### 🔍 Detalhes do Dia")
+    dia_selecionado = st.number_input("Selecione um dia para ver a rotina:", 1, 31, hoje.day)
+    
+    try:
+        data_sel = datetime(ano, mes, int(dia_selecionado))
+        dia_semana, foco, produtos = get_skincare(data_sel.weekday())
+        
+        st.info(f"**{dia_semana} - {foco}**")
+        for p in produtos:
+            st.write(f"- [ ] {p}")
+    except:
+        st.error("Dia inválido para este mês.")
+
+    st.divider()
+    st.write("📖 **Diário:**")
+    st.text_area("Como está sua pele hoje?", placeholder="Escreva aqui...")
